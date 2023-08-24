@@ -15,3 +15,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+# query log print
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type: trace
