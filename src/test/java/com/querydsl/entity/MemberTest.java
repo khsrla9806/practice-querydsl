@@ -159,4 +159,30 @@ class MemberTest {
 
         assertThat(total).isEqualTo(4);
     }
+
+    @Test
+    @DisplayName(
+            "1. 회원 나이를 내림차순 정렬" +
+            "2. 회원 이름을 오름차순 정렬" +
+            "3. 회원 이름이 null 이면 가장 마지막에 출력"
+    )
+    void sort() {
+        em.persist(new Member("member5", 100));
+        em.persist(new Member("member6", 100));
+        em.persist(new Member(null, 100));
+
+        List<Member> members = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(100))
+                .orderBy(member.age.desc(), member.username.asc().nullsLast())
+                .fetch();
+
+        Member member5 = members.get(0);
+        Member member6 = members.get(1);
+        Member memberNull = members.get(2);
+
+        assertThat(member5.getUsername()).isEqualTo("member5");
+        assertThat(member6.getUsername()).isEqualTo("member6");
+        assertThat(memberNull.getUsername()).isNull();
+    }
 }
