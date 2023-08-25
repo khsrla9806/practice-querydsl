@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.List;
+import java.util.Objects;
 
 import static com.querydsl.entity.QMember.member;
 import static com.querydsl.entity.QTeam.*;
@@ -292,6 +293,41 @@ class MemberTest {
         assertThat(result)
                 .extracting("username")
                 .containsExactly("teamA", "teamB");
+    }
+
+    @Test
+    @DisplayName("Join On (연관관계가 있는 경우 - Join 대상 필터링)")
+    void joinOn1() {
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(member.team, team)
+                .on(team.name.eq("teamA"))
+                .fetch();
+
+        assertThat(result).hasSize(4);
+        result.forEach(System.out::println);
+    }
+
+    @Test
+    @DisplayName("Join On (연관관계가 없는 경우 - 막 조인의 조건)")
+    void joinOn2() {
+        em.persist(new Member("teamA", 100));
+        em.persist(new Member("teamB", 100));
+
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(team)
+                .on(team.name.eq(member.username))
+                .fetch();
+
+        long nullCount = result.stream()
+                .map(tuple -> tuple.get(1, Team.class))
+                .filter(Objects::isNull)
+                .count();
+        assertThat(result).hasSize(6);
+        assertThat(nullCount).isEqualTo(4L);
     }
 
 }
