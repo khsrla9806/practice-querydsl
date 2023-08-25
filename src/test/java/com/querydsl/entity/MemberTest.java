@@ -185,4 +185,23 @@ class MemberTest {
         assertThat(member6.getUsername()).isEqualTo("member6");
         assertThat(memberNull.getUsername()).isNull();
     }
+
+    @Test
+    @DisplayName("offset, limit 이용하여 페이징 쿼리")
+    void paging() {
+        List<Member> members = queryFactory
+                .selectFrom(member)
+                .offset(1)
+                .limit(2)
+                .orderBy(member.username.desc())
+                .fetch();
+
+        Member member3 = members.get(0);
+        Member member2 = members.get(1);
+
+        assertThat(member3.getUsername()).isEqualTo("member3");
+        assertThat(member2.getUsername()).isEqualTo("member2");
+    }
+
+
 }
