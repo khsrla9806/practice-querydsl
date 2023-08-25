@@ -1,12 +1,15 @@
 package com.querydsl.entity;
 
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Transactional
 @SpringBootTest
@@ -15,8 +18,8 @@ class MemberTest {
     @PersistenceContext
     EntityManager em;
 
-    @Test
-    void testEntity() {
+    @BeforeEach
+    void init() {
         Team teamA = new Team("teamA");
         Team teamB = new Team("teamB");
         em.persist(teamA);
@@ -31,13 +34,30 @@ class MemberTest {
         em.persist(member2);
         em.persist(member3);
         em.persist(member4);
+    }
 
-        em.flush();
-        em.clear();
+    @Test
+    void testJPQL() {
+        String query = "select m from Member m where m.username = :username";
 
-        List<Member> members = em.createQuery("select m from Member m", Member.class)
-                .getResultList();
+        Member findMember = em.createQuery(query, Member.class)
+                .setParameter("username", "member1")
+                .getSingleResult();
 
-        members.forEach(System.out::println);
+        assertThat(findMember.getUsername()).isEqualTo("member1");
+    }
+
+    @Test
+    void testQueryDsl() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
+        QMember memberQ = QMember.member;
+
+        Member findMember = queryFactory
+                .select(memberQ)
+                .from(memberQ)
+                .where(memberQ.username.eq("member1"))
+                .fetchOne();
+
+        assertThat(findMember.getUsername()).isEqualTo("member1");
     }
 }
