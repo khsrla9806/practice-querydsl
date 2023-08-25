@@ -3,6 +3,7 @@ package com.querydsl.entity;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -398,5 +399,40 @@ class MemberTest {
                 .fetch();
 
         result.forEach(tuple -> assertThat(tuple.get(1, Double.class)).isEqualTo(25.0));
+    }
+
+    @Test
+    @DisplayName("간단한 case-when-then")
+    void simpleCase() {
+        List<String> result = queryFactory
+                .select(
+                        member.age
+                                .when(10).then("열살")
+                                .when(20).then("스무살")
+                                .otherwise("기타"))
+                .from(member)
+                .fetch();
+
+        List<String> expect = List.of("열살", "스무살", "기타", "기타");
+        assertThat(result).isEqualTo(expect);
+    }
+
+    @Test
+    @DisplayName("복잡한 case-when-then")
+    void moreCase() {
+        List<String> result = queryFactory
+                .select(
+                        new CaseBuilder()
+                                .when(member.age.between(10, 19)).then("10~19")
+                                .when(member.age.between(20, 29)).then("20~29")
+                                .when(member.age.between(30, 39)).then("30~39")
+                                .when(member.age.between(40, 49)).then("40~49")
+                                .otherwise("기타")
+                )
+                .from(member)
+                .fetch();
+
+        List<String> expect = List.of("10~19", "20~29", "30~39", "40~49");
+        assertThat(result).isEqualTo(expect);
     }
 }
