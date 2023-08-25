@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import static com.querydsl.entity.QMember.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Transactional
@@ -18,8 +19,11 @@ class MemberTest {
     @PersistenceContext
     EntityManager em;
 
+    JPAQueryFactory queryFactory;
+
     @BeforeEach
     void init() {
+        queryFactory = new JPAQueryFactory(em);
         Team teamA = new Team("teamA");
         Team teamB = new Team("teamB");
         em.persist(teamA);
@@ -49,13 +53,10 @@ class MemberTest {
 
     @Test
     void testQueryDsl() {
-        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
-        QMember memberQ = QMember.member;
-
         Member findMember = queryFactory
-                .select(memberQ)
-                .from(memberQ)
-                .where(memberQ.username.eq("member1"))
+                .select(member)
+                .from(member)
+                .where(member.username.eq("member1"))
                 .fetchOne();
 
         assertThat(findMember.getUsername()).isEqualTo("member1");
