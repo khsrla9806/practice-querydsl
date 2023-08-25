@@ -3,6 +3,7 @@ package com.querydsl.entity;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static com.querydsl.entity.QMember.member;
 import static com.querydsl.entity.QTeam.*;
@@ -368,4 +370,33 @@ class MemberTest {
         assertThat(isLoaded).isTrue();
     }
 
+    @Test
+    @DisplayName("서브쿼리 - where 안에 사용")
+    void subQueryWhere() {
+        /* 나이가 가장 많은 사람을 얻어오는 쿼리 */
+        QMember subMember = new QMember("subMember");
+
+        Member result = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(
+                        JPAExpressions
+                                .select(subMember.age.max())
+                                .from(subMember)
+                )).fetchOne();
+
+        assertThat(result.getAge()).isEqualTo(40);
+    }
+
+    @Test
+    @DisplayName("서브쿼리 - select 안에 사용")
+    void subQuerySelect() {
+        /* 프로젝션 결과 안에 나이 평균을 함께 얻어옴 */
+        QMember subMember = new QMember("subMember");
+        List<Tuple> result = queryFactory
+                .select(member, JPAExpressions.select(subMember.age.avg()).from(subMember))
+                .from(member)
+                .fetch();
+
+        result.forEach(tuple -> assertThat(tuple.get(1, Double.class)).isEqualTo(25.0));
+    }
 }
