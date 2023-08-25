@@ -11,7 +11,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceUnit;
 import java.util.List;
 import java.util.Objects;
 
@@ -328,6 +330,42 @@ class MemberTest {
                 .count();
         assertThat(result).hasSize(6);
         assertThat(nullCount).isEqualTo(4L);
+    }
+
+    @PersistenceUnit
+    EntityManagerFactory emf;
+
+    @Test
+    @DisplayName("fetch join 미적용")
+    void fetchJoinNo() {
+        em.flush();
+        em.clear();
+
+        Member result = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        /* 영속성 컨텍스트에 로드 되었는지 검증할 수 있는 방법 */
+        boolean isLoaded = emf.getPersistenceUnitUtil().isLoaded(result.getTeam());
+        assertThat(isLoaded).isFalse();
+    }
+
+    @Test
+    @DisplayName("fetch join 적용")
+    void fetchJoinUse() {
+        em.flush();
+        em.clear();
+
+        Member result = queryFactory
+                .selectFrom(member)
+                .join(member.team, team).fetchJoin()
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        /* 영속성 컨텍스트에 로드 되었는지 검증할 수 있는 방법 */
+        boolean isLoaded = emf.getPersistenceUnitUtil().isLoaded(result.getTeam());
+        assertThat(isLoaded).isTrue();
     }
 
 }
