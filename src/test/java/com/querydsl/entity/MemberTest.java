@@ -248,4 +248,50 @@ class MemberTest {
         assertThat(teamB.get(member.age.avg())).isEqualTo(35);
     }
 
+    @Test
+    @DisplayName("내부 조인")
+    void innerJoin() {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .join(member.team, team)
+                .where(team.name.eq("teamA"))
+                .fetch();
+
+        assertThat(result).hasSize(2);
+        assertThat(result)
+                .extracting("username")
+                .containsExactly("member1", "member2");
+    }
+
+    @Test
+    @DisplayName("외부 조인")
+    void leftOuterJoin() {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .leftJoin(member.team, team)
+                .where(team.name.eq("teamB"))
+                .fetch();
+
+        assertThat(result)
+                .extracting("username")
+                .containsExactly("member3", "member4");
+    }
+
+    @Test
+    @DisplayName("세타 조인 (막 조인, Cross Join)")
+    void theTaJoin() {
+        em.persist(new Member("teamA", 10));
+        em.persist(new Member("teamB", 10));
+
+        List<Member> result = queryFactory
+                .select(member)
+                .from(member, team)
+                .where(member.username.eq(team.name))
+                .fetch();
+
+        assertThat(result)
+                .extracting("username")
+                .containsExactly("teamA", "teamB");
+    }
+
 }
