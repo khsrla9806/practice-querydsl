@@ -1,5 +1,7 @@
 package com.querydsl.entity;
 
+import com.querydsl.core.NonUniqueResultException;
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import java.util.List;
 
-import static com.querydsl.entity.QMember.*;
+import static com.querydsl.entity.QMember.member;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Transactional
 @SpringBootTest
@@ -86,5 +90,73 @@ class MemberTest {
 
         assertThat(findMember.getUsername()).isEqualTo("member1");
         assertThat(findMember.getAge()).isEqualTo(10);
+    }
+
+    @Test
+    void fetch() {
+        List<Member> members = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        assertThat(members).hasSize(4);
+    }
+
+    @Test
+    @DisplayName("fetchOne 결과가 1개가 아니면 NonUniqueResultException 반환")
+    void fetchOne1() {
+        assertThatThrownBy(() -> queryFactory.selectFrom(member).fetchOne())
+                .isInstanceOf(NonUniqueResultException.class);
+    }
+
+    @Test
+    @DisplayName("fetchOne 결과가 0개이면 Null 반환")
+    void fetchOne2() {
+        Member member = queryFactory
+                .selectFrom(QMember.member)
+                .where(QMember.member.username.eq("none"))
+                .fetchOne();
+
+        assertThat(member).isNull();
+    }
+
+    @Test
+    @DisplayName("fetchFirst = limit(1) + fetchOne")
+    void fetchFirst() {
+        Member fetchFistMember = queryFactory
+                .selectFrom(QMember.member)
+                .fetchFirst();
+
+        Member limitOneMember = queryFactory
+                .selectFrom(member)
+                .limit(1)
+                .fetchOne();
+
+        assertThat(fetchFistMember.getUsername()).isEqualTo(limitOneMember.getUsername());
+    }
+
+    @Test
+    @Deprecated
+    @DisplayName("deprecated 되었다고 한다. | count 쿼리까지 발생하는 메서드")
+    void fetchResults() {
+        QueryResults<Member> memberResults = queryFactory
+                .selectFrom(member)
+                .fetchResults();
+
+        List<Member> content = memberResults.getResults();
+        long total = memberResults.getTotal();
+
+        assertThat(content).hasSize(4);
+        assertThat(total).isEqualTo(4L);
+    }
+
+    @Test
+    @Deprecated
+    @DisplayName("deprecated 되었다고 한다. | count 쿼리를 발생시키는 메서드")
+    void fetchCount() {
+        long total = queryFactory
+                .selectFrom(member)
+                .fetchCount();
+
+        assertThat(total).isEqualTo(4);
     }
 }
