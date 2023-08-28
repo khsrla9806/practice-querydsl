@@ -631,5 +631,54 @@ class MemberTest {
         return age != null ? member.age.eq(age) : null;
     }
 
+    @Test
+    @DisplayName("벌크 연산 - 영속성 컨텍스트 비우기 전 테스트 (주의)")
+    void bulkQueryInNotCleanContext() {
+        long count = queryFactory
+                .update(member)
+                .set(member.username, "bulk_member")
+                .where(member.age.goe(10))
+                .execute();
+
+        /* 모든 유저의 이름이 bulk_member 로 바뀌어야 한다. */
+        assertThat(count).isEqualTo(4);
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        /*
+            하지만 실제로 확인해보면 그대로 member1, member2, member3, member4 이다.
+            벌크 연산은 영속성 컨텍스트에 영향을 주지 않고, 직접 DB에 쿼리를 날리기 때문이다.
+         */
+        for (int index = 0; index < result.size(); index++) {
+            assertThat(result.get(index).getUsername()).isEqualTo(usernames.get(index));
+        }
+    }
+
+    @Test
+    @DisplayName("벌크 연산 - 영속성 컨텍스트 비운 후 테스트")
+    void bulkQueryInCleanContext() {
+        long count = queryFactory
+                .update(member)
+                .set(member.username, "bulk_member")
+                .where(member.age.goe(10))
+                .execute();
+
+        em.flush();
+        em.clear();
+
+        /* 모든 유저의 이름이 bulk_member 로 바뀌어야 한다. */
+        assertThat(count).isEqualTo(4);
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        /* 결과가 모두 "bulk_member"로 변경 되었다. */
+        for (Member value : result) {
+            assertThat(value.getUsername()).isEqualTo("bulk_member");
+        }
+    }
 
 }
