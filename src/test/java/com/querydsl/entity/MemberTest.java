@@ -4,7 +4,9 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.dto.MemberDto;
@@ -577,7 +579,7 @@ class MemberTest {
     }
 
     @ParameterizedTest
-    @MethodSource
+    @MethodSource("dynamicQueryArguments")
     @DisplayName("동적쿼리 - Boolean Builder 사용")
     void dynamicQueryByBooleanBuilder(String username, Integer age, int expectedSize) {
         BooleanBuilder builder = new BooleanBuilder();
@@ -597,7 +599,7 @@ class MemberTest {
         assertThat(result).hasSize(expectedSize);
     }
 
-    static Stream<Arguments> dynamicQueryByBooleanBuilder() {
+    static Stream<Arguments> dynamicQueryArguments() {
         return Stream.of(
                 Arguments.arguments("member1", 10, 1),
                 Arguments.arguments(null, 10, 1),
@@ -606,5 +608,29 @@ class MemberTest {
                 Arguments.arguments(null, null, 4)
         );
     }
+
+    @ParameterizedTest
+    @MethodSource("dynamicQueryArguments")
+    @DisplayName("동적쿼리 - Where 다중 파라미터 사용")
+    void dynamicQueryByParameters(String username, Integer age, int expectedSize) {
+        /*
+            where 안에 null 들어가면 해당 조건절은 없는 것이 된다.
+            해당 방법을 사용하면 동적쿼리를 메서드화 해서 재사용도 가능하고, 여러 조건을 조립이 가능해진다.
+        */
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(usernameEqual(username), ageEqual(age))
+                .fetch();
+
+        assertThat(result).hasSize(expectedSize);
+    }
+
+    private BooleanExpression usernameEqual(String username) {
+        return username != null ? member.username.eq(username) : null;
+    }
+    private BooleanExpression ageEqual(Integer age) {
+        return age != null ? member.age.eq(age) : null;
+    }
+
 
 }
