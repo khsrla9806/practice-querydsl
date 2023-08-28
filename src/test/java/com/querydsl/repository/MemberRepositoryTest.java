@@ -3,7 +3,9 @@ package com.querydsl.repository;
 import com.querydsl.dto.MemberSearchCondition;
 import com.querydsl.dto.MemberTeamDto;
 import com.querydsl.entity.Member;
+import com.querydsl.entity.QMember;
 import com.querydsl.entity.Team;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -174,5 +176,24 @@ class MemberRepositoryTest {
                         List.of("member1", "member2", "member3", "member4")
                 )
         );
+    }
+
+    /*
+        JpaRepository 기본 메서드에 Q 객체 기능을 쓸 수 있다.
+        [ 한계 ]
+        1. left join 불가능
+        2. 복잡한 실무 환경에서는 사용하기 힘들다. (권장 되지는 않는 방법)
+     */
+    @Test
+    @DisplayName("QueryDslPredicateExecutor 인터페이스 사용 테스트")
+    void QueryDslPredicateExecutorTest() {
+        initDataSetting();
+
+        QMember member = QMember.member;
+        Iterable<Member> result = memberRepository
+                .findAll(member.age.between(10, 30).and(member.username.eq("member1")));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.iterator().next().getUsername()).isEqualTo("member1");
     }
 }
