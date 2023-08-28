@@ -97,7 +97,14 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
 
         JPAQuery<Long> countQuery = queryFactory
                 .select(member.count())
-                .from(member);
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEqual(condition.getUsername()),
+                        teamNameEqual(condition.getTeamName()),
+                        ageGoe(condition.getAgeGoe()),
+                        ageLoe(condition.getAgeLoe())
+                );
 
         /*
             Spring Data 에서 제공 되는 기능 (카운트 쿼리 성능 최적화)
