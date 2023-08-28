@@ -10,11 +10,15 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,6 +96,62 @@ class MemberRepositoryTest {
         );
     }
 
+    @ParameterizedTest
+    @MethodSource("pageTestValues")
+    void searchSimpleTest(
+            MemberSearchCondition condition, Pageable pageable, int expectedSize, List<String> expectedUsernames) {
+        initDataSetting();
 
+        Page<MemberTeamDto> result = memberRepository.searchPageSimple(condition, pageable);
+        assertThat(result.getContent()).hasSize(expectedSize);
 
+        List<String> usernames = result.getContent().stream()
+                .map(MemberTeamDto::getUsername)
+                .collect(Collectors.toList());
+        assertThat(usernames).isEqualTo(expectedUsernames);
+    }
+
+    @ParameterizedTest
+    @MethodSource("pageTestValues")
+    void searchComplexTest(
+            MemberSearchCondition condition, Pageable pageable, int expectedSize, List<String> expectedUsernames) {
+        initDataSetting();
+
+        Page<MemberTeamDto> result = memberRepository.searchPageComplex(condition, pageable);
+        assertThat(result.getContent()).hasSize(expectedSize);
+
+        List<String> usernames = result.getContent().stream()
+                .map(MemberTeamDto::getUsername)
+                .collect(Collectors.toList());
+        assertThat(usernames).isEqualTo(expectedUsernames);
+    }
+
+    static Stream<Arguments> pageTestValues() {
+        return Stream.of(
+                Arguments.arguments(
+                        new MemberSearchCondition("member1", "teamA", 10, 20),
+                        PageRequest.of(0, 1),
+                        1,
+                        List.of("member1")
+                ),
+                Arguments.arguments(
+                        new MemberSearchCondition(null, "teamA", 10, 20),
+                        PageRequest.of(0, 2),
+                        2,
+                        List.of("member1", "member2")
+                ),
+                Arguments.arguments(
+                        new MemberSearchCondition(null, null, 10, 40),
+                        PageRequest.of(1, 2),
+                        2,
+                        List.of("member3", "member4")
+                ),
+                Arguments.arguments(
+                        new MemberSearchCondition(null, null, null, null),
+                        PageRequest.of(0, 3),
+                        3,
+                        List.of("member1", "member2", "member3")
+                )
+        );
+    }
 }
