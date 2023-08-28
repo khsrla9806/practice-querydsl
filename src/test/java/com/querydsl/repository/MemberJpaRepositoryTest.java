@@ -65,6 +65,15 @@ class MemberJpaRepositoryTest {
         assertThat(result).hasSize(expectedSize);
     }
 
+    @ParameterizedTest
+    @MethodSource("searchTestValues")
+    void searchByWhereParameter(MemberSearchCondition condition, int expectedSize) {
+        initDataSetting();
+
+        List<MemberTeamDto> result = memberJpaRepository.searchByWhereParameter(condition);
+        assertThat(result).hasSize(expectedSize);
+    }
+
     private void initDataSetting() {
         Team teamA = new Team("teamA");
         Team teamB = new Team("teamB");
