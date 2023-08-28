@@ -1,14 +1,12 @@
 package com.querydsl.dto;
 
-import lombok.Data;
+import lombok.*;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class MemberDto {
     private String username;
     private int age;
-
-    public MemberDto(String username, int age) {
-        this.username = username;
-        this.age = age;
-    }
 }

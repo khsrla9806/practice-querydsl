@@ -3,8 +3,10 @@ package com.querydsl.entity;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.dto.MemberDto;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +29,9 @@ import static org.assertj.core.api.Assertions.*;
 @Transactional
 @SpringBootTest
 class MemberTest {
+
+    static final List<String> usernames = List.of("member1", "member2", "member3", "member4");
+    static final List<Integer> ages = List.of(10, 20, 30, 40);
 
     @PersistenceContext
     EntityManager em;
@@ -483,9 +488,6 @@ class MemberTest {
                 .from(member)
                 .fetch();
 
-        List<String> usernames = List.of("member1", "member2", "member3", "member4");
-        List<Integer> ages = List.of(10, 20, 30, 40);
-
         assertThat(result).hasSize(4);
 
         for (int index = 0; index < result.size(); index++) {
@@ -495,5 +497,55 @@ class MemberTest {
         }
     }
 
+    @Test
+    @DisplayName("DTO Projection - 프로퍼티 접근 방식 (빈생성자 + Setter), setter 없으면 null 들어감 주의!")
+    void DtoProjectionBySetter() {
+        List<MemberDto> result = queryFactory
+                .select(Projections.bean(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).hasSize(4);
+
+        for (int index = 0; index < result.size(); index++) {
+            MemberDto dto = result.get(index);
+            assertThat(dto.getUsername()).isEqualTo(usernames.get(index));
+            assertThat(dto.getAge()).isEqualTo(ages.get(index));
+        }
+    }
+
+    @Test
+    @DisplayName("DTO Projection - 필드 접근 방식 (필드에 그냥 꽂아줌, 빈 생성자는 반드시 필요)")
+    void DtoProjectionByFields() {
+        List<MemberDto> result = queryFactory
+                .select(Projections.fields(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).hasSize(4);
+
+        for (int index = 0; index < result.size(); index++) {
+            MemberDto dto = result.get(index);
+            assertThat(dto.getUsername()).isEqualTo(usernames.get(index));
+            assertThat(dto.getAge()).isEqualTo(ages.get(index));
+        }
+    }
+
+    @Test
+    @DisplayName("DTO Projection - 생성자 접근 방식 (모든 필드를 파라미터로 갖는 생성자 호출)")
+    void DtoProjectionByConstructor() {
+        List<MemberDto> result = queryFactory
+                .select(Projections.constructor(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).hasSize(4);
+
+        for (int index = 0; index < result.size(); index++) {
+            MemberDto dto = result.get(index);
+            assertThat(dto.getUsername()).isEqualTo(usernames.get(index));
+            assertThat(dto.getAge()).isEqualTo(ages.get(index));
+        }
+    }
 
 }
