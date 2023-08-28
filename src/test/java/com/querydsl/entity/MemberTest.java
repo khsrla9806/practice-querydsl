@@ -4,6 +4,7 @@ import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,10 +19,9 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceUnit;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static com.querydsl.entity.QMember.member;
-import static com.querydsl.entity.QTeam.*;
+import static com.querydsl.entity.QTeam.team;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -434,5 +434,34 @@ class MemberTest {
 
         List<String> expect = List.of("10~19", "20~29", "30~39", "40~49");
         assertThat(result).isEqualTo(expect);
+    }
+
+    public enum Enum {
+        A, B;
+    }
+
+    @Test
+    @DisplayName("상수")
+    void constant() {
+        Tuple result = queryFactory
+                .select(member.username, Expressions.constant(Enum.A))
+                .from(member)
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        Enum a = result.get(1, Enum.class);
+        assertThat(a).isEqualTo(Enum.A);
+    }
+
+    @Test
+    @DisplayName("문자 더하기 - Enum 다룰 때 필요하게 될 stringValue")
+    void concat() {
+        String result = queryFactory
+                .select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        assertThat(result).isEqualTo("member1_10");
     }
 }
