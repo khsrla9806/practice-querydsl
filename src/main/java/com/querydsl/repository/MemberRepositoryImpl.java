@@ -5,11 +5,13 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.dto.MemberSearchCondition;
 import com.querydsl.dto.MemberTeamDto;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -93,12 +95,17 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        Long total = queryFactory
+        JPAQuery<Long> countQuery = queryFactory
                 .select(member.count())
-                .from(member)
-                .fetchFirst();
+                .from(member);
 
-        return new PageImpl<>(content, pageable, total);
+        /*
+            Spring Data 에서 제공 되는 기능 (카운트 쿼리 성능 최적화)
+            (1) 첫 번째 페이지이고, Page Size 보다 Content Size 가 적을 때 Count Query X
+            (2) 마지막 페이지일 때는 Offset + Page Size 해서 Total 사용 Count Query X
+         */
+        return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchFirst);
+        // return new PageImpl<>(content, pageable, total);
     }
 
     private BooleanExpression usernameEqual(String username) {

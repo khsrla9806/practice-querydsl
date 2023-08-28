@@ -151,6 +151,27 @@ class MemberRepositoryTest {
                         PageRequest.of(0, 3),
                         3,
                         List.of("member1", "member2", "member3")
+                ),
+                /* 마지막 페이지 데이터 1 : 꽉 차있지 않은 마지막 페이지 (content size < page size)는 Count Query 실행 안됨 */
+                Arguments.arguments(
+                        new MemberSearchCondition(null, null, 10, 40),
+                        PageRequest.of(1, 3),
+                        1,
+                        List.of("member4")
+                ),
+                /* 마지막 페이지 데이터 2 : 꽉 차있는 마지막 페이지 (content size == page size)는 Count Query 가 발생 되네? */
+                Arguments.arguments(
+                        new MemberSearchCondition(null, null, 10, 40),
+                        PageRequest.of(3, 1),
+                        1,
+                        List.of("member4")
+                ),
+                /* 첫 번째 페이지 데이터 : 꽉 차있지 않은 첫 번째 페이지 (content size < page size)는 Count Query 실행 안됨 */
+                Arguments.arguments(
+                        new MemberSearchCondition(null, null, 10, 40),
+                        PageRequest.of(0, 5),
+                        4,
+                        List.of("member1", "member2", "member3", "member4")
                 )
         );
     }
