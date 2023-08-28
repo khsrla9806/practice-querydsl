@@ -22,8 +22,7 @@ import java.util.Objects;
 
 import static com.querydsl.entity.QMember.member;
 import static com.querydsl.entity.QTeam.team;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @Transactional
 @SpringBootTest
@@ -464,4 +463,37 @@ class MemberTest {
 
         assertThat(result).isEqualTo("member1_10");
     }
+
+    @Test
+    @DisplayName("Projection - 단일 컬럼")
+    void simpleProjection() {
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+                .fetch();
+
+        assertThat(result).containsExactly("member1", "member2", "member3", "member4");
+    }
+
+    @Test
+    @DisplayName("Projection - 튜플")
+    void tupleProjection() {
+        List<Tuple> result = queryFactory
+                .select(member.username, member.age)
+                .from(member)
+                .fetch();
+
+        List<String> usernames = List.of("member1", "member2", "member3", "member4");
+        List<Integer> ages = List.of(10, 20, 30, 40);
+
+        assertThat(result).hasSize(4);
+
+        for (int index = 0; index < result.size(); index++) {
+            Tuple tuple = result.get(index);
+            assertThat(tuple.get(member.username)).isEqualTo(usernames.get(index));
+            assertThat(tuple.get(member.age)).isEqualTo(ages.get(index));
+        }
+    }
+
+
 }
