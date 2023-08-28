@@ -7,6 +7,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.dto.MemberDto;
+import com.querydsl.dto.QMemberDto;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -536,6 +537,27 @@ class MemberTest {
     void DtoProjectionByConstructor() {
         List<MemberDto> result = queryFactory
                 .select(Projections.constructor(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        assertThat(result).hasSize(4);
+
+        for (int index = 0; index < result.size(); index++) {
+            MemberDto dto = result.get(index);
+            assertThat(dto.getUsername()).isEqualTo(usernames.get(index));
+            assertThat(dto.getAge()).isEqualTo(ages.get(index));
+        }
+    }
+
+    @Test
+    @DisplayName("DTO Projection - @QueryProjections 이용하는 방법 (아키텍처 설계 관점에서 논의 필요)")
+    void DtoProjectionByQueryProjection() {
+        /*
+            컴파일 단계에서 에러를 작아주는 장점은 있지만, DTO 가 QueryDsl 에 의존하고 있다는 것과
+            DTO 관련된 Q 파일을 만들어야 한다는 단점은 존재한다.
+        */
+        List<MemberDto> result = queryFactory
+                .select(new QMemberDto(member.username, member.age))
                 .from(member)
                 .fetch();
 
