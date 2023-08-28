@@ -1,5 +1,6 @@
 package com.querydsl.entity;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.NonUniqueResultException;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
@@ -13,6 +14,10 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +27,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import static com.querydsl.entity.QMember.member;
 import static com.querydsl.entity.QTeam.team;
@@ -568,6 +574,37 @@ class MemberTest {
             assertThat(dto.getUsername()).isEqualTo(usernames.get(index));
             assertThat(dto.getAge()).isEqualTo(ages.get(index));
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    @DisplayName("동적쿼리 - Boolean Builder 사용")
+    void dynamicQueryByBooleanBuilder(String username, Integer age, int expectedSize) {
+        BooleanBuilder builder = new BooleanBuilder();
+        if (username != null) {
+            builder.and(member.username.eq(username));
+        }
+        if (age != null) {
+            builder.and(member.age.eq(age));
+        }
+
+        List<Member> result = queryFactory
+                .select(member)
+                .from(member)
+                .where(builder)
+                .fetch();
+
+        assertThat(result).hasSize(expectedSize);
+    }
+
+    static Stream<Arguments> dynamicQueryByBooleanBuilder() {
+        return Stream.of(
+                Arguments.arguments("member1", 10, 1),
+                Arguments.arguments(null, 10, 1),
+                Arguments.arguments("member1", null, 1),
+                Arguments.arguments("member100", 10, 0),
+                Arguments.arguments(null, null, 4)
+        );
     }
 
 }
